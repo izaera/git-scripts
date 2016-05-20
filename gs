@@ -7,7 +7,7 @@ git_last_commit_msg() {
 }
 
 git_changes_present() {
-	echo `[[ -z $(git status -s) ]]`
+	echo `if [ -z "$(git status -s)" ]; then echo false; else echo true; fi`
 }
 
 git_current_branch() {
@@ -63,11 +63,39 @@ case $1 in
 		git co $CURRENT_BRANCH
 		end_git_block
 
-		if $LOCAL_CHANGES
+		if $LOCAL_CHANGES 
 		then
 			say "UnWIPping local changes again to leave everything as it was before"
 			$GS unwip
 		fi
+		;;
+
+	rebase)
+		$GS sync
+
+		say "Rebasing on top of master"
+		begin_git_block
+		git rebase master
+		end_git_block
+		;;
+
+	merge)
+		CURRENT_BRANCH=`git_current_branch`
+		LOCAL_CHANGES=`git_changes_present`
+
+		if $LOCAL_CHANGES 
+		then
+			say "Local changes detected: cannot merge back to master"
+			exit 1
+		fi
+		
+		$GS rebase
+
+		say "Merging $CURRENT_BRANCH back to master"
+		begin_git_block
+		git co master
+		git rebase $CURRENT_BRANCH
+		end_git_block
 		;;
 
 	unwip)
@@ -100,6 +128,14 @@ case $1 in
 			git commit -m "WIP"
 			end_git_block
 		fi
+		;;
+
+	continue)
+		git rebase --continue
+		;;
+
+	abort)
+		git rebase --abort
 		;;
 
 	*)
