@@ -73,10 +73,24 @@ case $1 in
 	rebase)
 		$GS sync
 
+                LOCAL_CHANGES=`git_changes_present`
+
+		if $LOCAL_CHANGES
+		then
+			say "Local changes detected: WIPping them"
+			$GS wip
+		fi
+
 		say "Rebasing on top of master"
 		begin_git_block
 		git rebase master
 		end_git_block
+
+		if $LOCAL_CHANGES 
+		then
+			say "UnWIPping local changes again to leave everything as it was before"
+			$GS unwip
+		fi
 		;;
 
 	merge)
